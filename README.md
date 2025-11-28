@@ -1,9 +1,12 @@
-![logo](data/images/mediqms_logo.png)
-# Document Control
+# MediQMS
+
+<img src="data/images/mediqms_logo.png" alt="Logo" width="200" />
+
+## Document Control
 
 The goal of document control is to approve, review, distribute and obsolesce documents without losing traceability
 
-## General documents that need to be tracked
+### General documents that need to be tracked
 
 Documents
 
@@ -21,7 +24,7 @@ Records
 - Purchasing records
 - Records of production, controls, assays, CAPAs, audits.
 
-## ISO 13485:2018
+### ISO 13485:2018
 
 For each document the following requirement need to be met:
 
@@ -33,7 +36,7 @@ For each document the following requirement need to be met:
 - Have a documented procedure to identify, archive, protect and retrive records.
 - Records need to be kept during the life cycle fo the device or acording to the applicable regulations. 
 
-## Code of Federal Regulations Title 21 Part 820
+### Code of Federal Regulations Title 21 Part 820
 
 The organization shall:
 
@@ -43,7 +46,7 @@ The organization shall:
 - The records shall remain legible and stored to prevent loss or deterioration.
 - Keep the records for the expected life cycle of the device, at least two years from comercial distribution.
 
-## Diferences:
+### Diferences:
 
 Regarding to document control, both aplicable regulations are very similar since both require:
 
