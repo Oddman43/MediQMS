@@ -1,3 +1,4 @@
+![logo](data/images/mediqms_logo.png)
 # Document Control
 
 The goal of document control is to approve, review, distribute and obsolesce documents without losing traceability
