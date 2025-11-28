@@ -24,3 +24,10 @@ For each document the following requirement need to be met:
 
 ## Code of Federal Regulations Title 21 Part 820
 
+The organization shall:
+- Stablish and keep documented procedures to control all the documents required by Part 820
+- Designate individuals to review and approve the docuemnts before submiting them, the approval process shall be documented including date and signature
+- Obsolete documents shall be removed from all points of use or prevent its unintended use
+- The records shall remain legibles and stored to prevent loss or deterioration
+- Keep the records for the expected life cycle of the device, at least two years from comercial distribution
+
