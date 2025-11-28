@@ -1,9 +1,6 @@
-# MediQMS
+# <img src="data/images/mediqms_logo.png" alt="Logo" width="150" />
 
-
-<img src="data/images/mediqms_logo.png" alt="Logo" width="150" />
-
-Quality Managment System for Medical Devices from scratch
+Hands-on exploration of ISO 13485 and FDA 21 CFR 820 in medical device quality management
 
 ## Table of Contents
 🚧 Working on 🚧:
