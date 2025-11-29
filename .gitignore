@@ -206,6 +206,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 to_do.txt
-eQMS_for_Medical_Devices.code-workspace
+MediQMS.code-workspace
 .vscode
 .DS_Store
