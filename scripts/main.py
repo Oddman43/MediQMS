@@ -1,4 +1,5 @@
 # from document_control.doc_class import Document_Header, Document_Version
+# import sqlite3
 
 document_types: dict = {
     "Quality Manual": "QM",  # Manual de Calidad
