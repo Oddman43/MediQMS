@@ -32,3 +32,13 @@ status_types: list = [
     "SUPERSEDED",
     "OBSOLETE",
 ]
+
+template_map: dict = {
+    "SOP": "templates/SOP_Master.txt",
+    "WI": "templates/WI_Master.txt",
+    "POL": "templates/POL_Master.txt",
+    "QM": "templates/QM_Master.txt",
+    "FORM": "templates/FORM_Master.txt",
+    "BOM": "tempaltes/BOM_Master.txt",
+    "TMP": "templates/SEED_Blank.txt",
+}
