@@ -1,6 +1,8 @@
 # from document_control.doc_class import Document_Header, Document_Version
 # import sqlite3
 
+storage_root_path: str = "/storage"
+
 document_types: dict = {
     "Quality Manual": "QM",  # Manual de Calidad
     "Policy": "POL",  # Políticas (Quality Policy, RA Policy)
@@ -19,6 +21,7 @@ document_types: dict = {
     "Protocol": "PROT",  # Protocolos de Validación (antes de ejecutar)
     "Report": "REP",  # Reportes Técnicos que se versionan (CER, PMCF)
     "External Standard": "EXT",  # Normas ISO, Regulaciones FDA, MDR
+    "Controlled Template": "TMP",
 }
 
 status_types: list = [
