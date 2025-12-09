@@ -34,25 +34,22 @@ status_types: list = [
 ]
 
 template_map: dict[str, str] = {
-    "QM": "Template_QM.txt",  # Quality Manual
-    "POL": "Template_POL.txt",  # Policy
-    "OBJ": "Template_OBJ.txt",  # Objectives
-    "SOP": "Template_SOP.txt",  # Standard Operating Procedure
-    "WI": "Template_WI.txt",  # Work Instruction
-    "FORM": "Template_FORM.txt",  # Forms
-    "SPEC": "Template_SPEC.txt",  # Specifications
-    "BOM": "Template_BOM.txt",  # Bill of Materials
-    "SW": "Template_SW.txt",  # Software Docs
-    "RISK": "Template_RISK.txt",  # Risk Management
-    "IFU": "Template_IFU.txt",  # Instructions for Use
-    "PLAN": "Template_PLAN.txt",  # Plans
-    "PROT": "Template_PROT.txt",  # Protocols
-    "REP": "Template_REP.txt",  # Reports
-    "TMP": "Template_Meta.txt",  # Template para crear nuevas plantillas
-}
-
-mock_external_files: dict[str, str] = {
-    "DWG": "Mock_Drawing.pdf",  # Planos
-    "LBL": "Mock_Label.jpg",  # Etiquetas
-    "EXT": "Mock_Standard.pdf",  # Normas Externas
+    "QM": "storage/templates/Template_QM.txt",  # Quality Manual
+    "POL": "storage/templates/Template_POL.txt",  # Policy
+    "OBJ": "storage/templates/Template_OBJ.txt",  # Objectives
+    "SOP": "storage/templates/Template_SOP.txt",  # Standard Operating Procedure
+    "WI": "storage/templates/Template_WI.txt",  # Work Instruction
+    "FORM": "storage/templates/Template_FORM.txt",  # Forms
+    "SPEC": "storage/templates/Template_SPEC.txt",  # Specifications
+    "BOM": "storage/templates/Template_BOM.txt",  # Bill of Materials
+    "SW": "storage/templates/Template_SW.txt",  # Software Docs
+    "RISK": "storage/templates/Template_RISK.txt",  # Risk Management
+    "IFU": "storage/templates/Template_IFU.txt",  # Instructions for Use
+    "PLAN": "storage/templates/Template_PLAN.txt",  # Plans
+    "PROT": "storage/templates/Template_PROT.txt",  # Protocols
+    "REP": "storage/templates/Template_REP.txt",  # Reports
+    "TMP": "storage/templates/Template_Meta.txt",  # Template para crear nuevas plantillas
+    "DWG": "storage/mock_external/Mock_Drawing.pdf",  # Planos
+    "LBL": "storage/mock_external/Mock_Label.jpg",  # Etiquetas
+    "EXT": "storage/mock_external/Mock_Standard.pdf",  # Normas Externas
 }
