@@ -31,6 +31,20 @@ def mock_db():
         conn.execute(
             "CREATE TABLE versions (version_id INTEGER PRIMARY KEY, doc INTEGER, version TEXT, status TEXT, file_path TEXT, effective_date TEXT)"
         )
+        conn.execute("""
+                    CREATE TABLE audit_log (
+                        log_id INTEGER PRIMARY KEY,
+                        table_affected TEXT,
+                        record_id INTEGER,
+                        user INTEGER,
+                        action TEXT,
+                        old_val TEXT,
+                        new_val TEXT,
+                        timestamp TEXT,
+                        hash TEXT,
+                        FOREIGN KEY(user) REFERENCES users(user_id)
+                    )
+                """)
 
         conn.execute("INSERT INTO users (user_id, active_flag) VALUES (1, 1)")
         conn.execute("INSERT INTO users (user_id, active_flag) VALUES (99, 0)")
@@ -146,6 +160,10 @@ def test_incremental_corrupt_format(mock_db, mock_filesystem):
 def test_write_new_doc_success(mock_db):
     mock_header = MagicMock()
     mock_header.to_db_tuple.return_value = (100, "DOC-100", "Nuevo Documento", 1, "pdf")
+    mock_header.id = 100
+    mock_header.number = "DOC-100"
+    mock_header.title = "Nuevo Documento"
+    mock_header.owner = 1
 
     mock_version = MagicMock()
     mock_version.to_db_tuple.return_value = (
@@ -156,6 +174,11 @@ def test_write_new_doc_success(mock_db):
         "/ruta/falsa.pdf",
         "2023-10-01",
     )
+    mock_version.label = "0.1"
+    mock_version.status = "DRAFT"
+    mock_version.file_path = "/ruta/falsa.pdf"
+    mock_version.effective_date = "2023-10-01"
+
     write_new_doc(mock_header, mock_version, db_path=mock_db)
     with sqlite3.connect(mock_db) as conn:
         doc = conn.execute(
