@@ -209,3 +209,36 @@ def test_write_new_doc_rollback_on_error(mock_db):
         assert cursor.fetchone() is None, (
             "El rollback falló: el documento se guardó a pesar del error en la versión."
         )
+
+
+def test_write_new_doc_integrates_audit_log(mock_db):
+    mock_header = MagicMock()
+    mock_header.to_db_tuple.return_value = (100, "DOC-001", "Test Doc", 1, "pdf")
+    mock_header.id = 100
+    mock_header.number = "DOC-001"
+    mock_header.title = "Test Doc"
+    mock_header.owner = 1
+
+    mock_version = MagicMock()
+    mock_version.to_db_tuple.return_value = (
+        500,
+        100,
+        "1.0",
+        "DRAFT",
+        "/path/file.pdf",
+        "2023-01-01",
+    )
+    mock_version.label = "1.0"
+    mock_version.status = "DRAFT"
+    mock_version.file_path = "/path/file.pdf"
+    mock_version.effective_date = "2023-01-01"
+    write_new_doc(mock_header, mock_version, db_path=mock_db)
+    with sqlite3.connect(mock_db) as conn:
+        doc = conn.execute("SELECT title FROM documents WHERE doc_id=100").fetchone()
+        assert doc is not None, "El documento no se guardó"
+        log = conn.execute(
+            "SELECT action, table_affected FROM audit_log WHERE record_id=100"
+        ).fetchone()
+        assert log is not None, "El audit log NO se creó automáticamente"
+        assert log[0] == "CREATE", "La acción en el log debería ser CREATE"
+        assert log[1] == "documents", "La tabla afectada debería ser documents"
