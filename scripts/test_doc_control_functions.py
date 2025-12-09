@@ -1,9 +1,9 @@
 import pytest
 import sqlite3
 import os
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from doc_control_functions import create_new_document
+from doc_control_functions import create_new_document, write_new_doc
 from main import document_types, template_map
 
 
@@ -141,3 +141,48 @@ def test_incremental_corrupt_format(mock_db, mock_filesystem):
         conn.commit()
     header, _ = create_new_document("New Doc", "SOP", 1, db_path=mock_db)
     assert header.number == "SOP-001"
+
+
+def test_write_new_doc_success(mock_db):
+    mock_header = MagicMock()
+    mock_header.to_db_tuple.return_value = (100, "DOC-100", "Nuevo Documento", 1, "pdf")
+
+    mock_version = MagicMock()
+    mock_version.to_db_tuple.return_value = (
+        500,
+        100,
+        "0.1",
+        "DRAFT",
+        "/ruta/falsa.pdf",
+        "2023-10-01",
+    )
+    write_new_doc(mock_header, mock_version, db_path=mock_db)
+    with sqlite3.connect(mock_db) as conn:
+        doc = conn.execute(
+            "SELECT title, type FROM documents WHERE doc_id=100"
+        ).fetchone()
+        assert doc is not None
+        assert doc[0] == "Nuevo Documento"
+
+        ver = conn.execute(
+            "SELECT status, file_path FROM versions WHERE version_id=500"
+        ).fetchone()
+        assert ver is not None
+        assert ver[0] == "DRAFT"
+
+
+def test_write_new_doc_rollback_on_error(mock_db):
+    with sqlite3.connect(mock_db) as conn:
+        conn.execute("INSERT INTO versions (version_id) VALUES (500)")
+        conn.commit()
+    mock_header = MagicMock()
+    mock_header.to_db_tuple.return_value = (200, "DOC-200", "Doc Fallido", 1, "pdf")
+    mock_version = MagicMock()
+    mock_version.to_db_tuple.return_value = (500, 200, "1.0", "DRAFT", "path", "date")
+    with pytest.raises(sqlite3.IntegrityError):
+        write_new_doc(mock_header, mock_version, db_path=mock_db)
+    with sqlite3.connect(mock_db) as conn:
+        cursor = conn.execute("SELECT * FROM documents WHERE doc_id=200")
+        assert cursor.fetchone() is None, (
+            "El rollback falló: el documento se guardó a pesar del error en la versión."
+        )
