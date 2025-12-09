@@ -28,6 +28,9 @@ class Document_Header:
         else:
             return None
 
+    def to_db_tuple(self) -> tuple:
+        return (self.id, self.number, self.title, self.owner, self.title)
+
 
 @dataclass
 class Document_Version:
@@ -54,3 +57,13 @@ class Document_Version:
             return f"Effective date can not be empty in {self.status} documents"
         else:
             return None
+
+    def to_db_tuple(self) -> tuple:
+        return (
+            self.id,
+            self.doc,
+            self.label,
+            self.status,
+            self.file_path,
+            self.effective_date,
+        )
