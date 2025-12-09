@@ -1,10 +1,10 @@
 import sqlite3
 from pathlib import Path
+import os
+import shutil
 
 from doc_class import Document_Header, Document_Version
 from main import document_types, template_map
-import os
-import shutil
 
 
 def create_new_document(
