@@ -4,6 +4,7 @@ import os
 import shutil
 
 from doc_class import Document_Header, Document_Version
+from audit_log import audit_log_documents
 from main import document_types, template_map
 
 
@@ -88,3 +89,4 @@ def write_new_doc(
         except sqlite3.Error as e:
             db.rollback()
             raise e
+    audit_log_documents(header, version, db_path)
