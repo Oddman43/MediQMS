@@ -3,6 +3,8 @@
 
 storage_root_path: str = "/storage"
 
+db_path = "/data/database/mediqms.db"
+
 document_types: dict[str, str] = {
     "Quality Manual": "QM",
     "Policy": "POL",

@@ -6,16 +6,13 @@ from main import document_types, template_map
 import os
 import shutil
 
-db_path = "/data/database/mediqms.db"
-
 
 def create_new_document(
-    title: str, type: str, owner_id: int
+    title: str, type: str, owner_id: int, db_path: str = "/data/database/mediqms.db"
 ) -> tuple[Document_Header, Document_Version]:
-    # drafts_path: Path = Path("storage/01_drafts")
     if type not in document_types.values():
         raise (ValueError(f"Invalid type, not in valid types: '{type}'"))
-    tmp_path: str = template_map.get(type)  # type: ignore
+    tmp_path: str = template_map.get(type.upper())  # type: ignore
     if not tmp_path:
         raise ValueError(
             f"Configuration Error: No template or mock found for type '{type}'"
@@ -69,24 +66,3 @@ def create_new_document(
         next_ver_id, next_doc_id, "0.1", "DRAFT", destination_path_root, None
     )
     return (new_document, new_version)
-
-
-# validacion inicial
-# title no esta repetido en la db
-# type es valido
-# owner_id valido y active
-
-# numeracion
-# check el type y ver ultimo numero
-# tener en cuenta coldstart
-
-# consultar id
-# ver max id de documento y version y sumarle 1
-
-# instanciar los objetos
-# Document_Header
-# Document_Version
-
-# insert a la db
-
-# return los objetos
