@@ -4,7 +4,7 @@ import os
 from unittest.mock import patch, MagicMock
 
 from doc_control_functions import create_new_document, write_new_doc
-from main import document_types, template_map
+from config import document_types, template_map
 
 
 db_file: str = "tests/test_eqms.db"

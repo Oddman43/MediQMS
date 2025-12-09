@@ -1,11 +1,12 @@
 import sqlite3
 from pathlib import Path
+from config import storage_root_path
 import os
 import shutil
 
 from doc_class import Document_Header, Document_Version
 from audit_log import audit_log_documents
-from main import document_types, template_map
+from config import document_types, template_map
 
 
 def create_new_document(
@@ -56,15 +57,15 @@ def create_new_document(
                 next_doc_num: str = f"{type}-{next_seq:03d}"
     copy_path: Path = Path(tmp_path)
     extension_file: str = os.path.splitext(tmp_path)[1]
-    destination_path_root: str = (
-        f"storage/01_drafts/{next_doc_num}_V0.1_DRAFT{extension_file}"
-    )
+    destination_folder: Path = Path(storage_root_path) / "01_drafts"
+    file_name: str = f"{next_doc_num}_V0.1_DRAFT{extension_file}"
+    destination_path_root = destination_folder / file_name
     shutil.copy(copy_path, destination_path_root)
     new_document: Document_Header = Document_Header(
         next_doc_id, next_doc_num, title, owner_id, type
     )
     new_version: Document_Version = Document_Version(
-        next_ver_id, next_doc_id, "0.1", "DRAFT", destination_path_root, None
+        next_ver_id, next_doc_id, "0.1", "DRAFT", str(destination_path_root), None
     )
     return (new_document, new_version)
 

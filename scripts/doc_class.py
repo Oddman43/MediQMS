@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import re
-from main import document_types, status_types
+from config import document_types, status_types
 
 
 @dataclass
