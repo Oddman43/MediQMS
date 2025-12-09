@@ -1,17 +1,25 @@
-from doc_class import Document_Header, Document_Version
-from ..main import document_types, status_types
 import sqlite3
+from pathlib import Path
+
+from doc_class import Document_Header, Document_Version
+from ..main import document_types, template_map
+import os
+import shutil
 
 db_path = "/data/database/mediqms.db"
 
-# def create_new_document(
-#     title: str, type: str, owner_id: int
-# ) -> tuple[Document_Header, Document_Version]:
 
-
-def create_new_document(title: str, type: str, owner_id: int):
+def create_new_document(
+    title: str, type: str, owner_id: int
+) -> tuple[Document_Header, Document_Version]:
+    # drafts_path: Path = Path("storage/01_drafts")
     if type not in document_types.values():
         raise (ValueError(f"Invalid type, not in valid types: '{type}'"))
+    tmp_path: str = template_map.get(type)  # type: ignore
+    if not tmp_path:
+        raise ValueError(
+            f"Configuration Error: No template or mock found for type '{type}'"
+        )
     with sqlite3.connect(db_path) as db:
         cursor: sqlite3.Cursor = db.cursor()
         cursor.execute("SELECT count(*) FROM documents WHERE title = ?", (title,))
@@ -48,6 +56,19 @@ def create_new_document(title: str, type: str, owner_id: int):
                 current_seq: int = int(parts[1])
                 next_seq: int = current_seq + 1
                 next_doc_num: str = f"{type}-{next_seq:03d}"
+    copy_path: Path = Path(tmp_path)
+    extension_file: str = os.path.splitext(tmp_path)[1]
+    destination_path_root: str = (
+        f"storage/01_drafts/{next_doc_num}_V0.1_DRAFT{extension_file}"
+    )
+    shutil.copy(copy_path, destination_path_root)
+    new_document: Document_Header = Document_Header(
+        next_doc_id, next_doc_num, title, owner_id, type
+    )
+    new_version: Document_Version = Document_Version(
+        next_ver_id, next_doc_id, "0.1", "DRAFT", destination_path_root, None
+    )
+    return (new_document, new_version)
 
 
 # validacion inicial
