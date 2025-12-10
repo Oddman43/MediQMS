@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import hashlib
 import os
+import shutil
 
 
 def approve_document(
@@ -57,8 +58,10 @@ def approve_document(
         new_effective_date: str = date  # type: ignore
         new_version_major: int = int(version.split(".")[0]) + 1
         new_version: str = f"{new_version_major}.0"
-        new_file_path: str = file_path.replace("_DRAFT", "").replace(
-            version, new_version
+        new_file_path: str = (
+            file_path.replace("_DRAFT", "")
+            .replace(version, new_version)
+            .replace("01_drafts", "03_released")
         )
         old_values: dict = {
             "status": status,
@@ -73,7 +76,8 @@ def approve_document(
             "effective_date": new_effective_date,
         }
         if os.path.exists(file_path):
-            os.rename(file_path, new_file_path)
+            shutil.move(file_path, new_file_path)
+
         else:
             raise FileNotFoundError(f"Incorrect path in the databse: '{file_path}'")
     else:
