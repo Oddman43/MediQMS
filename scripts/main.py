@@ -1,7 +1,6 @@
 from doc_control_functions import create_new_document, write_new_doc
 from approvals import approve_document
 from revise_doc import revise_doc
-from revise_doc import revise_doc
 from config import db_path
 from datetime import datetime
 
