@@ -1,5 +1,6 @@
 from doc_control_functions import create_new_document, write_new_doc
 from approvals import approve_document
+from revise_doc import revise_doc
 from config import db_path
 from datetime import datetime
 
@@ -9,3 +10,4 @@ if __name__ == "__main__":
     write_new_doc(doc, ver, db_path)
     approve_document("charlie_eng", 1, db_path)
     approve_document("alice_qa", 1, db_path, datetime.now().isoformat())
+    revise_doc("charlie_eng", "SOP-001", db_path)
