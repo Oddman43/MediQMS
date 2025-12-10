@@ -29,7 +29,7 @@ class Document_Header:
             return None
 
     def to_db_tuple(self) -> tuple:
-        return (self.id, self.number, self.title, self.owner, self.title)
+        return (self.id, self.number, self.title, self.owner, self.type)
 
 
 @dataclass
