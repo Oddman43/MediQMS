@@ -78,7 +78,36 @@ def audit_log_docs(
             raise e
 
 
-def doc_info(doc_name: str, db_path: str) -> Document_Version: ...
+def doc_info(doc_num: str, db_path: str) -> Document_Header:
+    doc_id: int
+    title: str
+    owner_id: int
+    doc_type: str
+    with sqlite3.connect(db_path) as db:
+        cur: sqlite3.Cursor = db.cursor()
+        cur.execute(
+            "SELECT doc_id, title, owner_id, type FROM documents WHERE doc_num = ?",
+            (doc_num,),
+        )
+        result: tuple = cur.fetchone()
+    doc_id, title, owner_id, doc_type = result
+    return Document_Header(doc_id, doc_num, title, owner_id, doc_type)
 
 
-def version_info(doc_id: int, db_path: str) -> Document_Header: ...
+def latest_version_info(doc_id: int, db_path: str) -> Document_Version:
+    version_id: int
+    version: str
+    status: str
+    file_path: str
+    effective_date: str
+    with sqlite3.connect(db_path) as db:
+        cur: sqlite3.Cursor = db.cursor()
+        cur.execute(
+            "SELECT version_id, version, status, file_path, effective_date FROM versions WHERE doc = ? ORDER BY version_id DESC LIMIT 1",
+            (doc_id,),
+        )
+        results: tuple = cur.fetchone()
+    version_id, version, status, file_path, effective_date = results
+    return Document_Version(
+        version_id, doc_id, version, status, file_path, effective_date
+    )
