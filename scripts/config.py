@@ -88,27 +88,25 @@ def user_info(user_name: str, db_path: str) -> list:
         return [user_id, active_flag, user_roles]
 
 
-def old_new_val(old_v: dict, new_v: dict) -> tuple:
-    changed_keys: list = [k for k, v in new_v.items() if v != old_v.get(k)]
-    old_values: dict = {k: old_v.get(k) for k in changed_keys}
-    new_values: dict = {k: new_v.get(k) for k in changed_keys}
-    return old_values, new_values
-
-
 def audit_log_docs(
-    old_object: Document_Header | Document_Version,
+    old_object: Document_Header | Document_Version | None,
     new_object: Document_Header | Document_Version,
     user_id: int,
     action: str,
     db_path: str,
 ) -> None:
-    if isinstance(old_object, Document_Header):
+    if isinstance(new_object, Document_Header):
         table_affected: str = "documents"
     else:
         table_affected: str = "versions"
-    old_val: dict
-    new_val: dict
-    old_val, new_val = old_new_val(dict(old_object), dict(new_object))
+    if not old_object:
+        old_dict: dict = {}
+    else:
+        old_dict = dict(old_object)
+    new_dict: dict = dict(new_object)
+    changed_keys: list = [k for k, v in new_dict.items() if v != old_dict.get(k)]
+    old_val: dict = {k: old_dict.get(k) for k in changed_keys}
+    new_val: dict = {k: new_dict.get(k) for k in changed_keys}
     old_val_json: str = json.dumps(old_val)
     new_val_json: str = json.dumps(new_val)
     record_id: int = new_object.id
@@ -116,8 +114,8 @@ def audit_log_docs(
     raw_hash: str = f"{table_affected}{record_id}{user_id}{action}{old_val_json}{new_val_json}{timestam}"
     row_hash: str = hashlib.sha256(raw_hash.encode("utf-8")).hexdigest()
     query_insert: str = """
-        INSERT INTO audit_log (table_affected, record_id, user, action, old_val, new_val, timestamp, hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        insert into audit_log (table_affected, record_id, user, action, old_val, new_val, timestamp, hash)
+        values (?, ?, ?, ?, ?, ?, ?, ?)
         """
     with sqlite3.connect(db_path) as db:
         try:
