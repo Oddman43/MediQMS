@@ -6,7 +6,7 @@ import shutil
 
 from doc_class import Document_Header, Document_Version
 from config import document_types, template_map
-from base_fns import audit_log_docs, user_info
+from core_fn import audit_log_docs, user_info
 
 
 def create_new_document(

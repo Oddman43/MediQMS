@@ -1,7 +1,7 @@
 import os
 import shutil
 from copy import deepcopy
-from base_fns import audit_log_docs, doc_info, version_info, user_info, update_db
+from core_fn import audit_log_docs, doc_info, version_info, user_info, update_db
 from doc_class import Document_Header, Document_Version
 
 
