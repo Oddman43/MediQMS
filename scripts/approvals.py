@@ -65,15 +65,18 @@ def approve_checks(user: str, doc_num: str, db_path: str) -> tuple:
 
 def supersed_docs(doc_id: int, user_id: int, db_path: str) -> None:
     action: str = "SUPERSEDED"
-    version_released: Document_Version = version_info(
+    version_old: Document_Version = version_info(
         doc_id, db_path, ["status", "RELEASED"]
     )
-    new_version: Document_Version = deepcopy(version_released)
-    tmp_file_path: str = new_version.file_path.replace("03_released", "04_archive")
-    root, ext = os.path.splitext(tmp_file_path)
-    new_version.file_path = f"{root}_SUPERSEDED{ext}"
-    shutil.move(version_released.file_path, new_version.file_path)
-    new_val: dict = audit_log_docs(
-        version_released, new_version, user_id, action, db_path
+    version_superseded: Document_Version = deepcopy(version_old)
+    tmp_file_path: str = version_superseded.file_path.replace(
+        "03_released", "04_archive"
     )
-    update_db("versions", new_val, new_version, db_path)
+    root, ext = os.path.splitext(tmp_file_path)
+    version_superseded.file_path = f"{root}_SUPERSEDED{ext}"
+    version_superseded.status = "SUPERSEDED"
+    shutil.move(version_old.file_path, version_superseded.file_path)
+    new_val: dict = audit_log_docs(
+        version_old, version_superseded, user_id, action, db_path
+    )
+    update_db("versions", new_val, version_superseded, db_path)
