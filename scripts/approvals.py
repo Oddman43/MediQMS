@@ -1,4 +1,3 @@
-import sqlite3
 import os
 import shutil
 from copy import deepcopy
@@ -77,15 +76,4 @@ def supersed_docs(doc_id: int, user_id: int, db_path: str) -> None:
     new_val: dict = audit_log_docs(
         version_released, new_version, user_id, action, db_path
     )
-    update_fields: str = ", ".join([f"{key} = ?" for key in new_val.keys()])
-    values: list = list(new_val.values())
-    values.append(new_version.id)
-    query_update: str = f"UPDATE versions SET {update_fields} WHERE version_id = ?"
-    with sqlite3.connect(db_path) as db:
-        try:
-            cur: sqlite3.Cursor = db.cursor()
-            cur.execute(query_update, tuple(values))
-            db.commit()
-        except sqlite3.Error as e:
-            db.rollback()
-            raise e
+    update_db("versions", new_val, new_version, db_path)
