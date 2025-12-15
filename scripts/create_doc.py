@@ -6,12 +6,10 @@ import shutil
 
 from doc_class import Document_Header, Document_Version
 from config import document_types, template_map
-from core_fn import audit_log_docs, user_info
+from core_fn import audit_log_docs, user_info, create_doc, create_version
 
 
-def create_new_document(
-    title: str, type: str, user_name: str, db_path: str
-) -> tuple[Document_Header, Document_Version]:
+def create_new_document(title: str, type: str, user_name: str, db_path: str) -> None:
     if type not in document_types.values():
         raise (ValueError(f"Invalid type, not in valid types: '{type}'"))
     tmp_path: str = template_map.get(type.upper())  # type: ignore
@@ -21,8 +19,7 @@ def create_new_document(
         )
     user_id: int
     active_flag: int
-    user_roles: list[str]
-    user_id, active_flag, user_roles = user_info(user_name, db_path)
+    user_id, active_flag, _ = user_info(user_name, db_path)
     if active_flag == 0:
         raise ValueError(f"Owner ID {user_id} does not exist or is inactive")
     with sqlite3.connect(db_path) as db:
@@ -65,28 +62,7 @@ def create_new_document(
     new_version: Document_Version = Document_Version(
         next_ver_id, next_doc_id, "0.1", "DRAFT", str(destination_path_root), None
     )
-    return (new_document, new_version)
-
-
-def write_new_doc(
-    header: Document_Header,
-    version: Document_Version,
-    db_path: str,
-) -> None:
-    with sqlite3.connect(db_path) as db:
-        try:
-            db.execute(
-                "INSERT INTO documents (doc_id, doc_num, title, owner_id, type) VALUES (?, ?, ?, ?, ?)",
-                header.to_db_tuple(),
-            )
-            db.execute(
-                "INSERT INTO versions (version_id, doc, version, status, file_path, effective_date) VALUES (?, ?, ?, ?, ?, ?)",
-                version.to_db_tuple(),
-            )
-            db.commit()
-
-        except sqlite3.Error as e:
-            db.rollback()
-            raise e
-    audit_log_docs(None, header, header.owner, "CREATE", db_path)
-    audit_log_docs(None, version, header.owner, "CREATE", db_path)
+    create_doc(new_document, db_path)
+    create_version(new_version, db_path)
+    audit_log_docs(None, new_document, new_document.owner, "CREATE", db_path)
+    audit_log_docs(None, new_version, new_document.owner, "CREATE", db_path)
