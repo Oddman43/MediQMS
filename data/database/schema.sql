@@ -62,6 +62,7 @@ CREATE TABLE approvals (
     "version_id" INTEGER,
     "approver_id" INTEGER,
     "date_signature" TEXT,
+    "status" TEXT,
     "signature_hash" TEXT,
     "role_signing" TEXT,
     PRIMARY KEY("approval_id"),
