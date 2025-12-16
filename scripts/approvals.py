@@ -1,5 +1,8 @@
 import os
 import shutil
+import sqlite3
+import hashlib
+from datetime import datetime
 from copy import deepcopy
 from core_fn import audit_log_docs, doc_info, version_info, user_info, update_db
 from doc_class import Document_Header, Document_Version
@@ -43,6 +46,7 @@ def approve_document(
         raise PermissionError(f"Action not permited for user: '{user}'")
     new_values = audit_log_docs(version_old, version_new, user_id, action, db_path)
     update_db("versions", new_values, version_new, db_path)
+    write_approval(user_id, user_role, version_new, db_path)
 
 
 def approve_checks(user: str, doc_num: str, db_path: str) -> tuple:
@@ -80,3 +84,43 @@ def supersed_docs(doc_id: int, user_id: int, db_path: str) -> None:
         version_old, version_superseded, user_id, action, db_path
     )
     update_db("versions", new_val, version_superseded, db_path)
+
+
+def write_approval(
+    user_id: int, user_type: str, version_obj: Document_Version, db_path: str
+) -> None:
+    timestamp: str = datetime.now().isoformat()
+    version_id: int = version_obj.id
+    with sqlite3.connect(db_path) as db:
+        cur: sqlite3.Cursor = db.cursor()
+        insert_query: str = "INSERT INTO approvals (version_id, approver_id, date_signature, status, role_signing, signature_hash) VALUES (?, ?, ?, ?, ?, ?)"
+        if user_type == "owner":
+            for action in [["APPROVED", "OWNER"], ["PENDING", "QUALITY_MANAGER"]]:
+                status: str
+                role: str
+                status, role = action
+                row_info: str = f"{version_id}{user_id}{timestamp}{status}{role}"
+                row_hash: str = hashlib.sha256(row_info.encode("utf-8")).hexdigest()
+                cur.execute(
+                    insert_query,
+                    (version_id, user_id, timestamp, status, role, row_hash),
+                )
+        else:
+            status: str = "APPROVED"
+            role: str = "QUALITY_MANAGER"
+            update_query: str = """UPDATE approvals 
+                SET 
+                    date_signature = ?,
+                    status = ?,
+                    signature_hash = ?
+                WHERE
+                    version_id = ?
+                    AND status = 'PENDING'
+                """
+            row_info: str = f"{version_id}{user_id}{timestamp}{status}{role}"
+            row_hash: str = hashlib.sha256(row_info.encode("utf-8")).hexdigest()
+            cur.execute(
+                update_query,
+                (timestamp, status, row_hash, version_id),
+            )
+        db.commit()
