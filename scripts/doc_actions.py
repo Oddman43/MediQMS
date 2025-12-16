@@ -17,7 +17,7 @@ from core_fn import (
 from doc_class import Document_Header, Document_Version
 
 
-def review_draft(action: str) -> FunctionType:  # type: ignore
+def doc_action(action: str) -> FunctionType:  # type: ignore
     if action == "APPROVE":
         return approve_document
     elif action == "REJECT":
