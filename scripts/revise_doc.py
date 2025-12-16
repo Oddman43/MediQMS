@@ -23,7 +23,10 @@ def revise_doc(user: str, doc_num: str, db_path: str) -> None:
     version_new.effective_date = None
     user_id: int
     user_roles: list
-    user_id, _, user_roles = user_info(user, db_path)
+    active_flag: int
+    user_id, active_flag, user_roles = user_info(user, db_path)
+    if active_flag == 0:
+        raise ValueError(f"User '{user}' is not active")
     with sqlite3.connect(db_path) as db:
         cur: sqlite3.Cursor = db.cursor()
         cur.execute(
