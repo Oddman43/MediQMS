@@ -1,15 +1,35 @@
+from types import FunctionType
 import os
 import shutil
 import sqlite3
 import hashlib
 from datetime import datetime
 from copy import deepcopy
-from core_fn import audit_log_docs, doc_info, version_info, user_info, update_db
+from core_fn import (
+    audit_log_docs,
+    doc_info,
+    version_info,
+    user_info,
+    update_db,
+    create_version,
+    max_id,
+)
 from doc_class import Document_Header, Document_Version
 
 
+def review_draft(action: str) -> FunctionType:  # type: ignore
+    if action == "APPROVE":
+        return approve_document
+    elif action == "REJECT":
+        return reject_doc
+
+
 def approve_document(
-    user: str, doc_num: str, db_path: str, date: str | None = None
+    user: str,
+    doc_num: str,
+    db_path: str,
+    date: str | None = None,
+    comment: str | None = None,
 ) -> None:
     parent_doc: Document_Header
     version_old: Document_Version
@@ -46,7 +66,7 @@ def approve_document(
         raise PermissionError(f"Action not permited for user: '{user}'")
     new_values = audit_log_docs(version_old, version_new, user_id, action, db_path)
     update_db("versions", new_values, version_new, db_path)
-    write_approval(user_id, user_role, version_new, db_path)
+    write_approval(user_id, user_role, version_new, "APPROVE", db_path)
 
 
 def approve_checks(user: str, doc_num: str, db_path: str) -> tuple:
@@ -87,7 +107,11 @@ def supersed_docs(doc_id: int, user_id: int, db_path: str) -> None:
 
 
 def write_approval(
-    user_id: int, user_type: str, version_obj: Document_Version, db_path: str
+    user_id: int,
+    user_type: str,
+    version_obj: Document_Version,
+    action: str,
+    db_path: str,
 ) -> None:
     timestamp: str = datetime.now().isoformat()
     version_id: int = version_obj.id
@@ -95,10 +119,10 @@ def write_approval(
         cur: sqlite3.Cursor = db.cursor()
         insert_query: str = "INSERT INTO approvals (version_id, approver_id, date_signature, status, role_signing, signature_hash) VALUES (?, ?, ?, ?, ?, ?)"
         if user_type == "owner":
-            for action in [["APPROVED", "OWNER"], ["PENDING", "QUALITY_MANAGER"]]:
+            for info in [["APPROVED", "OWNER"], ["PENDING", "QUALITY_MANAGER"]]:
                 status: str
                 role: str
-                status, role = action
+                status, role = info
                 row_info: str = f"{version_id}{user_id}{timestamp}{status}{role}"
                 row_hash: str = hashlib.sha256(row_info.encode("utf-8")).hexdigest()
                 cur.execute(
@@ -106,16 +130,21 @@ def write_approval(
                     (version_id, user_id, timestamp, status, role, row_hash),
                 )
         else:
-            status: str = "APPROVED"
+            if action == "APPROVE":
+                status: str = "APPROVED"
+            elif action == "REJECT":
+                status: str = "REJECTED"
+            else:
+                raise ValueError(f"Action not permited: '{action}'")
             role: str = "QUALITY_MANAGER"
-            update_query: str = """UPDATE approvals 
-                SET 
+            update_query: str = """UPDATE approvals
+                SET
                     date_signature = ?,
                     status = ?,
                     signature_hash = ?
                 WHERE
                     version_id = ?
-                    AND status = 'PENDING'
+                    AND STATUS = 'PENDING'
                 """
             row_info: str = f"{version_id}{user_id}{timestamp}{status}{role}"
             row_hash: str = hashlib.sha256(row_info.encode("utf-8")).hexdigest()
@@ -124,3 +153,54 @@ def write_approval(
                 (timestamp, status, row_hash, version_id),
             )
         db.commit()
+
+
+def reject_doc(
+    user: str,
+    doc_num: str,
+    db_path: str,
+    date: str | None = None,
+    comment: str | None = None,
+) -> None:
+    action: str = "REJECT"
+    parent_doc: Document_Header
+    version_root: Document_Version
+    user_role: str
+    user_id: int
+    parent_doc, version_root, user_role, user_id = approve_checks(
+        user, doc_num, db_path
+    )
+    version_old = deepcopy(version_root)
+    version_new = deepcopy(version_root)
+    if user_role != "QM":
+        raise ValueError(
+            f"Only quality manager can reject drafts, '{user}' is not Quality Manager"
+        )
+    if version_old.status != "IN_REVIEW":
+        raise ValueError(f"Document does not have in review version: '{doc_num}'")
+    if not comment:
+        raise ValueError("Rejection needs a comment")
+    max_v_id: int = max_id("versions", "version_id", db_path)
+    version_new.id = max_v_id + 1
+    major_minor_old = version_old.version
+    major_old: int = int(major_minor_old.split(".")[0])
+    minor_old: int = int(major_minor_old.split(".")[1])
+    minor_new: int = minor_old + 1
+    major_minor_new: str = f"{major_old}.{minor_new}"
+    version_new.version = major_minor_new
+    version_new.file_path = version_old.file_path.replace(
+        major_minor_old, major_minor_new
+    )
+    shutil.copy(version_old.file_path, version_new.file_path)
+    version_old.file_path = version_old.file_path.replace(
+        "01_drafts", "04_archive"
+    ).replace("_DRAFT", "_REJECTED")
+    version_old.status = "REJECTED"
+    version_new.status = "DRAFT"
+    shutil.move(version_root.file_path, version_old.file_path)
+    rejected_new_vals: dict = audit_log_docs(
+        version_root, version_old, user_id, action, db_path
+    )
+    audit_log_docs(version_root, version_new, user_id, "CREATE", db_path)
+    update_db("versions", rejected_new_vals, version_old, db_path)
+    create_version(version_new, db_path)
