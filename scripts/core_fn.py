@@ -54,8 +54,8 @@ def audit_log_docs(
     raw_hash: str = f"{table_affected}{record_id}{user_id}{action}{old_val_json}{new_val_json}{timestam}"
     row_hash: str = hashlib.sha256(raw_hash.encode("utf-8")).hexdigest()
     query_insert: str = """
-        insert into audit_log (table_affected, record_id, user, action, old_val, new_val, timestamp, hash)
-        values (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO audit_log (table_affected, record_id, user, action, old_val, new_val, timestamp, hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
     with sqlite3.connect(db_path) as db:
         try:
