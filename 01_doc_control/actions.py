@@ -22,6 +22,8 @@ def doc_action(action: str) -> FunctionType:  # type: ignore
         return approve_document
     elif action == "REJECT":
         return reject_doc
+    elif action == "OBSOLETE":
+        return obsolete_doc
 
 
 def approve_document(
@@ -66,7 +68,7 @@ def approve_document(
         raise PermissionError(f"Action not permited for user: '{user}'")
     new_values = audit_log_docs(version_old, version_new, user_id, action, db_path)
     update_db("versions", new_values, version_new, db_path)
-    write_approval(user_id, user_role, version_new, "APPROVE", db_path)
+    write_approvals_table(user_id, user_role, version_new, "APPROVE", db_path)
 
 
 def approve_checks(user: str, doc_num: str, db_path: str) -> tuple:
@@ -106,7 +108,7 @@ def supersed_docs(doc_id: int, user_id: int, db_path: str) -> None:
     update_db("versions", new_val, version_superseded, db_path)
 
 
-def write_approval(
+def write_approvals_table(
     user_id: int,
     user_type: str,
     version_obj: Document_Version,
@@ -126,11 +128,18 @@ def write_approval(
                 status: str
                 role: str
                 status, role = info
-                row_info: str = f"{version_id}{user_id}{timestamp}{status}{role}"
+                row_info: str = f"{version_id}{user_id if role == 'OWNER' else 2}{timestamp}{status}{role}"
                 row_hash: str = hashlib.sha256(row_info.encode("utf-8")).hexdigest()
                 cur.execute(
                     insert_query,
-                    (version_id, user_id, timestamp, status, role, row_hash),
+                    (
+                        version_id,
+                        user_id if role == "OWNER" else 2,
+                        timestamp,
+                        status,
+                        role,
+                        row_hash,
+                    ),
                 )
         else:
             role: str = "QUALITY_MANAGER"
@@ -225,4 +234,30 @@ def reject_doc(
     audit_log_docs(version_root, version_new, user_id, "CREATE", db_path)
     update_db("versions", rejected_new_vals, version_old, db_path)
     create_version(version_new, db_path)
-    write_approval(user_id, user_role, version_root, action, db_path, comment)
+    write_approvals_table(user_id, user_role, version_root, action, db_path, comment)
+
+
+def obsolete_doc(user: str, doc_num: str, db_path: str):
+    action: str = "OBSOLETE"
+    user_id: int
+    active_flag: int
+    user_roles: list
+    user_id, active_flag, user_roles = user_info(user, db_path)
+    if active_flag == 0:
+        raise ValueError(f"User is not active: '{user}'")
+    if "Quality Manager" not in user_roles:
+        raise ValueError(f"Only quality manager can obsolete docs: '{user}'")
+    parent_doc: Document_Header = doc_info(doc_num, db_path)
+    version_old: Document_Version = version_info(
+        parent_doc.id, db_path, ["status", "RELEASED"]
+    )
+    version_new: Document_Version = deepcopy(version_old)
+    new_file_path: str = version_old.file_path.replace("03_released", "04_archive")
+    root: str
+    ext: str
+    root, ext = os.path.splitext(new_file_path)
+    version_new.file_path = f"{root}_{action}{ext}"
+    version_new.status = action
+    shutil.move(version_old.file_path, version_new.file_path)
+    new_vals: dict = audit_log_docs(version_old, version_new, user_id, action, db_path)
+    update_db("versions", new_vals, version_new, db_path)
