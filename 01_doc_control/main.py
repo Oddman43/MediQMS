@@ -31,6 +31,10 @@ if __name__ == "__main__":
         "quality.manager", "SOP-001", db_path, datetime.now().isoformat()
     )
     revise_doc("quality.manager", "SOP-002", db_path)
+    doc_action("APPROVE")("albert.sevilleja", "SOP-002", db_path)
+    doc_action("APPROVE")(
+        "quality.manager", "SOP-002", db_path, datetime.now().isoformat()
+    )
     create_new_document("test3", "WI", "albert.sevilleja", db_path)
     doc_action("APPROVE")("albert.sevilleja", "WI-001", db_path)
     doc_action("APPROVE")(
@@ -38,3 +42,4 @@ if __name__ == "__main__":
     )
     revise_doc("quality.manager", "WI-001", db_path)
     doc_action("APPROVE")("albert.sevilleja", "WI-001", db_path)
+    doc_action("OBSOLETE")("quality.manager", "SOP-002", db_path)
