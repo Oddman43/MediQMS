@@ -71,6 +71,20 @@ CREATE TABLE approvals (
     FOREIGN KEY("approver_id") REFERENCES "users"("user_id")
 );
 
+CREATE TABLE training_records(
+    "training_id" INTEGER,
+    "user_id" INTEGER,
+    "version_id" INTEGER,
+    "status" TEXT,
+    "assigned_date" TEXT,
+    "due_date" TEXT,
+    "completion_date" TEXT,
+    "signature_hash" TEXT,
+    PRIMARY KEY("training_id"),
+    FOREIGN KEY("user_id") REFERENCES "users"("user_id"),
+    FOREIGN KEY("version_id") REFERENCES "versions"("version_id")
+);
+
 CREATE INDEX idx_audit_lookup ON "audit_log"("table_affected", "record_id");
 CREATE INDEX idx_doc_num ON "documents"("doc_num");
 CREATE INDEX idx_versions_doc ON "versions"("doc");

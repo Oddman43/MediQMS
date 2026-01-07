@@ -18,7 +18,12 @@ with sqlite3.connect(db_path) as db:
 
 script_location = Path(__file__).resolve()
 project_root = script_location.parents[2]
-folders_to_clean = ["storage/01_drafts", "storage/03_released", "storage/04_archive"]
+folders_to_clean = [
+    "storage/01_drafts",
+    "storage/02_pending_approval",
+    "storage/03_released",
+    "storage/04_archive",
+]
 
 for relative_path in folders_to_clean:
     folder_path = project_root / relative_path
