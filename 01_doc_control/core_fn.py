@@ -2,6 +2,9 @@ import sqlite3
 from datetime import datetime
 import json
 import hashlib
+import shutil
+import os
+from copy import deepcopy
 from doc_class import Document_Header, Document_Version
 
 
@@ -160,6 +163,28 @@ def create_doc(doc_obj: Document_Header, db_path: str) -> None:
             doc_obj.to_db_tuple(),
         )
         db.commit()
+
+
+def supersed_docs(doc_id: int, user_id: int, db_path: str) -> None:
+    action: str = "SUPERSEDED"
+    version_old: Document_Version = version_info(
+        doc_id, db_path, ["status", "RELEASED"]
+    )
+    version_superseded: Document_Version = deepcopy(version_old)
+    tmp_file_path: str = version_superseded.file_path.replace(
+        "03_released", "04_archive"
+    )
+    root, ext = os.path.splitext(tmp_file_path)
+    version_superseded.file_path = f"{root}_SUPERSEDED{ext}"
+    version_superseded.status = "SUPERSEDED"
+    shutil.move(version_old.file_path, version_superseded.file_path)
+    new_val: dict = audit_log_docs(
+        version_old, version_superseded, user_id, action, db_path
+    )
+    update_db("versions", new_val, version_superseded, db_path)
+
+
+def assign_training(): ...
 
 
 def lazy_check(): ...
