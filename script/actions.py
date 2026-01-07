@@ -13,8 +13,12 @@ from core_fn import (
     update_db,
     create_version,
     max_id,
+    get_training_users,
+    inital_trining,
+    audit_log_training,
 )
 from doc_class import Document_Header, Document_Version
+from training_class import Training
 
 
 def doc_action(action: str) -> FunctionType:  # type: ignore
@@ -71,6 +75,8 @@ def approve_document(
     new_values = audit_log_docs(version_old, version_new, user_id, action, db_path)
     update_db("versions", new_values, version_new, db_path)
     write_approvals_table(user_id, user_role, version_new, "APPROVE", db_path)
+    if version_new.status == "TRAINING":
+        assign_training(doc_num, efective_date, user_id, db_path)  # type: ignore
 
 
 def approve_checks(user: str, doc_num: str, db_path: str) -> tuple:
@@ -244,3 +250,26 @@ def obsolete_doc(user: str, doc_num: str, db_path: str):
     shutil.move(version_old.file_path, version_new.file_path)
     new_vals: dict = audit_log_docs(version_old, version_new, user_id, action, db_path)
     update_db("versions", new_vals, version_new, db_path)
+
+
+def assign_training(
+    doc_num: str, efective_date: str, user_assigning: int, db_path: str
+):
+    action: str = "ASSING"
+    parent_doc: Document_Header = doc_info(doc_num, db_path)
+    version_training: Document_Version = version_info(
+        parent_doc.id, db_path, ["status", "TRAINING"]
+    )
+    users_to_train: list[int] = get_training_users(db_path)
+    for user in users_to_train:
+        new_training: Training = Training(
+            max_id("training_records", "training_id", db_path),
+            user,
+            version_training.id,
+            "ASSIGNED",
+            datetime.now().isoformat(),
+            efective_date,
+            None,
+        )
+        inital_trining(new_training, db_path)
+        audit_log_training(None, new_training, user_assigning, action, db_path)
