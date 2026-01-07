@@ -6,6 +6,7 @@ import shutil
 import os
 from copy import deepcopy
 from doc_class import Document_Header, Document_Version
+from training_class import Training
 
 
 def user_info(user_name: str, db_path: str) -> list:
@@ -53,6 +54,54 @@ def audit_log_docs(
     old_val_json: str = json.dumps(old_val)
     new_val_json: str = json.dumps(new_val)
     record_id: int = new_object.id
+    timestam: str = datetime.now().isoformat()
+    raw_hash: str = f"{table_affected}{record_id}{user_id}{action}{old_val_json}{new_val_json}{timestam}"
+    row_hash: str = hashlib.sha256(raw_hash.encode("utf-8")).hexdigest()
+    query_insert: str = """
+        INSERT INTO audit_log (table_affected, record_id, user, action, old_val, new_val, timestamp, hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+    with sqlite3.connect(db_path) as db:
+        try:
+            db.execute(
+                query_insert,
+                (
+                    table_affected,
+                    record_id,
+                    user_id,
+                    action,
+                    old_val_json,
+                    new_val_json,
+                    timestam,
+                    row_hash,
+                ),
+            )
+            db.commit()
+        except sqlite3.Error as e:
+            db.rollback()
+            raise e
+    return new_val
+
+
+def audit_log_training(
+    old_training_obj: Training | None,
+    new_training_obj: Training,
+    user_id: int,
+    action: str,
+    db_path: str,
+):
+    table_affected: str = "training_records"
+    if not old_training_obj:
+        old_dict: dict = {}
+    else:
+        old_dict = dict(old_training_obj)
+    new_dict: dict = dict(new_training_obj)
+    changed_keys: list = [k for k, v in new_dict.items() if v != old_dict.get(k)]
+    old_val: dict = {k: old_dict.get(k) for k in changed_keys}
+    new_val: dict = {k: new_dict.get(k) for k in changed_keys}
+    old_val_json: str = json.dumps(old_val)
+    new_val_json: str = json.dumps(new_val)
+    record_id: int = new_training_obj.id
     timestam: str = datetime.now().isoformat()
     raw_hash: str = f"{table_affected}{record_id}{user_id}{action}{old_val_json}{new_val_json}{timestam}"
     row_hash: str = hashlib.sha256(raw_hash.encode("utf-8")).hexdigest()
@@ -142,7 +191,11 @@ def max_id(table: str, field: str, db_path: str):
     with sqlite3.connect(db_path) as db:
         cur: sqlite3.Cursor = db.cursor()
         cur.execute(f"SELECT MAX({field}) FROM {table}")
-        return cur.fetchone()[0]
+        result = cur.fetchone()[0]
+        if result:
+            return result
+        else:
+            return 1
 
 
 def create_version(version_obj: Document_Version, db_path: str) -> None:
@@ -193,17 +246,13 @@ def get_training_users(db_path: str) -> list[int]:
         return [i[0] for i in cur.fetchall()]
 
 
-def inital_trining(
-    user_id: int, version_id: int, due_date: str, assigned_date: str, db_path: str
-) -> None:
+def inital_trining(training_obj: Training, db_path: str) -> None:
     query_training = """
-    INSERT INTO training_records(user_id, version_id, status, assigned_date, due_date) VALUES(?, ?, ?, ?, ?)
+    INSERT INTO training_records(training_id, user_id, version_id, status, assigned_date, due_date, completion_date) VALUES(?, ?, ?, ?, ?, ?, ?)
     """
     with sqlite3.connect(db_path) as db:
         cur: sqlite3.Cursor = db.cursor()
-        cur.execute(
-            query_training, (user_id, version_id, "ASSIGNED", assigned_date, due_date)
-        )
+        cur.execute(query_training, training_obj.to_db_tuple())
         db.commit()
 
 
