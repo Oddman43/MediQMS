@@ -44,7 +44,7 @@ def approve_document(
         action: str = "UPDATE"
     elif user_role == "QM" and version_old.status == "IN_REVIEW":
         version_new.status = "TRAINING"
-        action: str = "APROVE"
+        action: str = "APPROVE"
         if not efective_date:
             raise ValueError(f"Efective_date field is obligatory: '{efective_date}'")
         if datetime.fromisoformat(efective_date) < (
