@@ -193,7 +193,7 @@ def max_id(table: str, field: str, db_path: str):
         cur.execute(f"SELECT MAX({field}) FROM {table}")
         result = cur.fetchone()[0]
         if result:
-            return result
+            return int(result)
         else:
             return 1
 

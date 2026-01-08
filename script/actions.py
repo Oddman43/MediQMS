@@ -28,6 +28,8 @@ def doc_action(action: str) -> FunctionType:  # type: ignore
         return reject_doc
     elif action == "OBSOLETE":
         return obsolete_doc
+    else:
+        raise ValueError("Action does not exist")
 
 
 def approve_document(
@@ -263,13 +265,12 @@ def assign_training(
     users_to_train: list[int] = get_training_users(db_path)
     for user in users_to_train:
         new_training: Training = Training(
-            max_id("training_records", "training_id", db_path),
+            max_id("training_records", "training_id", db_path) + 1,
             user,
             version_training.id,
             "ASSIGNED",
             datetime.now().isoformat(),
             efective_date,
-            None,
         )
         inital_trining(new_training, db_path)
         audit_log_training(None, new_training, user_assigning, action, db_path)
