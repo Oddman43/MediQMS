@@ -79,6 +79,7 @@ CREATE TABLE training_records(
     "assigned_date" TEXT,
     "due_date" TEXT,
     "completion_date" TEXT,
+    "score" INTEGER,
     "signature_hash" TEXT,
     PRIMARY KEY("training_id"),
     FOREIGN KEY("user_id") REFERENCES "users"("user_id"),
