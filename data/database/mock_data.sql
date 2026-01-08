@@ -6,15 +6,23 @@ INSERT INTO roles (role_id, role_name, description, permisions) VALUES
 (5, 'General Employee', 'End user, read-only access to released docs', '["read_released", "sign_training"]');
 
 INSERT INTO users (user_id, user_name, full_name, email, active_flag, password_hash) VALUES 
-(1, 'admin', 'System Administrator', 'admin@meddevice.com', 1, 'hash_secret_admin_123'),
-(2, 'quality.manager', 'Alice Smith', 'alice.smith@meddevice.com', 1, 'hash_secret_alice_456'),
-(3, 'regulatory.affairs', 'Bob Jones', 'bob.jones@meddevice.com', 1, 'hash_secret_bob_789'),
-(4, 'albert.sevilleja', 'Albert Sevillej', 'albert.sevilleja@meddevice.com', 1, 'hash_secret_albert_abc'),
-(5, 'walter.white', 'Walter White', 'walter.white@meddevice.com', 1, 'hash_secret_walter_def');
+(2, 'albert.sevilleja', 'Albert Sevilleja', 'albert.sevilleja@meddevice.com', 1, 'hash_secret_albert_abc'),
+(3, 'walter.white', 'Walter White', 'walter.white@meddevice.com', 1, 'hash_secret_heisenberg_blue'),
+(4, 'jesse.pinkman', 'Jesse Pinkman', 'jesse.pinkman@meddevice.com', 1, 'hash_secret_jesse_science'),
+(5, 'skyler.white', 'Skyler White', 'skyler.white@meddevice.com', 1, 'hash_secret_skyler_carwash'),
+(6, 'hank.schrader', 'Hank Schrader', 'hank.schrader@meddevice.com', 1, 'hash_secret_hank_minerals'),
+(7, 'gus.fring', 'Gustavo Fring', 'gus.fring@meddevice.com', 1, 'hash_secret_gus_pollos'),
+(8, 'saul.goodman', 'Saul Goodman', 'saul.goodman@meddevice.com', 1, 'hash_secret_saul_lawyer'),
+(9, 'mike.ehrmantraut', 'Mike Ehrmantraut', 'mike.ehrmantraut@meddevice.com', 1, 'hash_secret_mike_security'),
+(10, 'tuco.salamanca', 'Tuco Salamanca', 'tuco.salamanca@meddevice.com', 0, 'hash_secret_tuco_tight');
 
 INSERT INTO users_roles (user, role) VALUES 
-(1, 1),
-(2, 2),
-(3, 3),
-(4, 4),
-(5, 5);
+(1, 5),
+(2, 7),
+(3, 8),
+(4, 2),
+(5, 3),
+(5, 4),
+(5, 6),
+(5, 9),
+(5, 10);
