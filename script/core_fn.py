@@ -261,6 +261,23 @@ def inital_trining(training_obj: Training, db_path: str) -> None:
         db.commit()
 
 
+def get_training(user_id: int, doc_num: str, db_path: str) -> Training:
+    doc_obj: Document_Header = doc_info(doc_num, db_path)
+    version_obj: Document_Version = version_info(
+        doc_obj.id, db_path, ["status", "TRAINING"]
+    )
+    query: str = """
+                SELECT * FROM training_records WHERE user_id = ? AND version_id = ? AND status IN ('ASSIGNED','FAILED')
+                """
+    with sqlite3.connect(db_path) as db:
+        cur: sqlite3.Cursor = db.cursor()
+        cur.execute(query, (user_id, version_obj.id))
+        res: tuple = cur.fetchone()
+        if not res:
+            raise ValueError("No training for user and document")
+        return Training(*res[:-1])
+
+
 def lazy_check(): ...
 
 
