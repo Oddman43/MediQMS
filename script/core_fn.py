@@ -241,14 +241,19 @@ def get_training_users(db_path: str) -> list[int]:
     with sqlite3.connect(db_path) as db:
         cur: sqlite3.Cursor = db.cursor()
         cur.execute(
-            "SELECT user FROM users_roles WHERE role = (SELECT role_id FROM roles WHERE role_name = 'General Employee')"
+            """
+            SELECT user 
+            FROM users_roles 
+            WHERE role = (SELECT role_id FROM roles WHERE role_name = 'General Employee') 
+            AND user IN (SELECT user_id FROM users WHERE active_flag = 1);
+            """
         )
         return [i[0] for i in cur.fetchall()]
 
 
 def inital_trining(training_obj: Training, db_path: str) -> None:
     query_training = """
-    INSERT INTO training_records(training_id, user_id, version_id, status, assigned_date, due_date, completion_date) VALUES(?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO training_records(training_id, user_id, version_id, status, assigned_date, due_date, completion_date, score) VALUES(?, ?, ?, ?, ?, ?, ?, ?)
     """
     with sqlite3.connect(db_path) as db:
         cur: sqlite3.Cursor = db.cursor()
