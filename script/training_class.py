@@ -1,4 +1,5 @@
 from datetime import datetime
+from config import training_types
 
 
 class Training:
@@ -26,6 +27,10 @@ class Training:
         else:
             self.completion_date = None
         self.score: int | None = score
+
+    def _checks(self) -> None | str:
+        if self.status not in training_types:
+            return "Status not valid or empty"
 
     def __iter__(self):
         yield "training_id", self.id
