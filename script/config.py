@@ -38,7 +38,7 @@ status_types: list = [
     "OBSOLETE",
 ]
 
-training_types: list = ["ASIGNED", "COMPLETED", "OVERDUE"]
+training_types: list = ["ASIGNED", "FAILED", "COMPLETED", "OVERDUE"]
 
 template_map: dict[str, str] = {
     "QM": str(BASE_DIR / "storage/templates/Template_QM.txt"),
