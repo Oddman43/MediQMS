@@ -86,7 +86,9 @@ def check_overdue(db_path: str) -> None:
 
 
 def lazy_check(db_path: str):
-    query: str = "SELECT * FROM versions WHERE status = 'TRAINING'"
+    query: str = (
+        "SELECT * FROM versions WHERE status IN ('TRAINING', 'PENDING_RELEASE')"
+    )
     with sqlite3.connect(db_path) as db:
         cur: sqlite3.Cursor = db.cursor()
         cur.execute(query)
@@ -100,9 +102,11 @@ def lazy_check(db_path: str):
                     if major_v > 1:
                         supersed_docs(old_version.doc, 0, db_path)
                     new_version.status = "RELEASED"
-                    new_version.file_path = new_version.file_path.replace(
-                        "_TRAINING", ""
-                    ).replace("02_pending_approval", "03_released")
+                    new_version.file_path = (
+                        new_version.file_path.replace("_TRAINING", "")
+                        .replace("_PENDING_RELEASE", "")
+                        .replace("02_pending_approval", "03_released")
+                    )
                     if os.path.exists(old_version.file_path):
                         shutil.move(old_version.file_path, new_version.file_path)
                     new_vals: dict = audit_log_docs(

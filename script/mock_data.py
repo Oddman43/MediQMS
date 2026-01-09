@@ -8,10 +8,8 @@ from copy import deepcopy
 from training_actions import lazy_check
 from training_actions import check_overdue
 from document_actions import revise_doc
-
-
 from classes import Document_Header, Document_Version, Training
-from config import document_types, template_map
+from config import document_types, template_map, training_docs
 from core_actions import (
     audit_log_docs,
     user_info,
@@ -89,7 +87,7 @@ def approve_document(
     user: str,
     doc_num: str,
     db_path: str,
-    efective_date: str | None,
+    efective_date: str | None = (datetime.now() + timedelta(days=15)).isoformat(),
     comment: str | None = None,
 ) -> None:
     parent_doc: Document_Header
@@ -102,19 +100,25 @@ def approve_document(
         version_new.status = "IN_REVIEW"
         action: str = "UPDATE"
     elif user_role == "QM" and version_old.status == "IN_REVIEW":
-        version_new.status = "TRAINING"
+        if parent_doc.type in training_docs:
+            version_new.status = "TRAINING"
+            version_new.file_path = (
+                version_old.file_path.replace("_DRAFT", "_TRAINING")
+                .replace(version_old.version, version_new.version)
+                .replace("01_drafts", "02_pending_approval")
+            )
+        else:
+            version_new.status = "PENDING_RELEASE"
+            version_new.file_path = (
+                version_old.file_path.replace("_DRAFT", "_PENDING_RELEASE")
+                .replace(version_old.version, version_new.version)
+                .replace("01_drafts", "02_pending_approval")
+            )
         action: str = "APPROVE"
-        if not efective_date:
-            raise ValueError(f"Efective_date field is obligatory: '{efective_date}'")
         version_new.effective_date = efective_date  # type: ignore
         major_version: int = int(version_old.version.split(".")[0])
         new_version_major: int = major_version + 1
         version_new.version = f"{new_version_major}.0"
-        version_new.file_path = (
-            version_old.file_path.replace("_DRAFT", "_TRAINING")
-            .replace(version_old.version, version_new.version)
-            .replace("01_drafts", "02_pending_approval")
-        )
         if os.path.exists(version_old.file_path):
             shutil.move(version_old.file_path, version_new.file_path)
         else:
@@ -233,3 +237,10 @@ approve_document(
 for user in training_users:
     do_training(user, "SOP-002", 100, db_path)
 lazy_check(db_path)
+
+
+create_new_document("test4", "DWG", "albert.sevilleja", db_path)
+approve_document("albert.sevilleja", "DWG-001", db_path, None)
+approve_document(
+    "gus.fring", "DWG-001", db_path, (datetime.now() + timedelta(days=4)).isoformat()
+)

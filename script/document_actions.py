@@ -6,7 +6,7 @@ import hashlib
 from pathlib import Path
 from datetime import datetime, timedelta
 from copy import deepcopy
-from config import document_types, template_map, storage_root_path
+from config import document_types, template_map, storage_root_path, training_docs
 from core_actions import (
     doc_info,
     version_info,
@@ -108,7 +108,20 @@ def approve_document(
         version_new.status = "IN_REVIEW"
         action: str = "UPDATE"
     elif user_role == "QM" and version_old.status == "IN_REVIEW":
-        version_new.status = "TRAINING"
+        if parent_doc.type in training_docs:
+            version_new.status = "TRAINING"
+            version_new.file_path = (
+                version_old.file_path.replace("_DRAFT", "_TRAINING")
+                .replace(version_old.version, version_new.version)
+                .replace("01_drafts", "02_pending_approval")
+            )
+        else:
+            version_new.status = "PENDING_RELEASE"
+            version_new.file_path = (
+                version_old.file_path.replace("_DRAFT", "_PENDING_RELEASE")
+                .replace(version_old.version, version_new.version)
+                .replace("01_drafts", "02_pending_approval")
+            )
         action: str = "APPROVE"
         if not efective_date:
             raise ValueError(f"Efective_date field is obligatory: '{efective_date}'")
@@ -120,11 +133,6 @@ def approve_document(
         major_version: int = int(version_old.version.split(".")[0])
         new_version_major: int = major_version + 1
         version_new.version = f"{new_version_major}.0"
-        version_new.file_path = (
-            version_old.file_path.replace("_DRAFT", "_TRAINING")
-            .replace(version_old.version, version_new.version)
-            .replace("01_drafts", "02_pending_approval")
-        )
         if os.path.exists(version_old.file_path):
             shutil.move(version_old.file_path, version_new.file_path)
         else:
