@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 from copy import deepcopy
 
 
-from doc_class import Document_Header, Document_Version
+from classes import Document_Header, Document_Version, Training
 from config import document_types, template_map
-from core_fn import (
+from core_actions import (
     audit_log_docs,
     user_info,
     create_doc,
@@ -17,11 +17,10 @@ from core_fn import (
     update_db,
     get_user_id,
     get_training,
-    audit_log_training,
     update_training,
 )
-from doc_actions import approve_checks, write_approvals_table, assign_training
-from training_class import Training
+from audit_actions import audit_log_training
+from document_actions import approve_checks, write_approvals_table, assign_training
 
 
 def create_new_document(title: str, type: str, user_name: str, db_path: str) -> None:

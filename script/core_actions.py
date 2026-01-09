@@ -1,12 +1,10 @@
 import sqlite3
-from datetime import datetime
-import json
 import hashlib
 import shutil
 import os
 from copy import deepcopy
-from doc_class import Document_Header, Document_Version
-from training_class import Training
+from classes import Document_Header, Document_Version, Training
+from audit_actions import audit_log_docs
 
 
 def user_info(user_name: str, db_path: str) -> list:
@@ -30,105 +28,6 @@ def user_info(user_name: str, db_path: str) -> list:
         )
         user_roles: list[str] = [i[0] for i in cur.fetchall()]
         return [user_id, active_flag, user_roles]
-
-
-def audit_log_docs(
-    old_object: Document_Header | Document_Version | None,
-    new_object: Document_Header | Document_Version,
-    user_id: int,
-    action: str,
-    db_path: str,
-) -> dict:
-    if isinstance(new_object, Document_Header):
-        table_affected: str = "documents"
-    else:
-        table_affected: str = "versions"
-    if not old_object:
-        old_dict: dict = {}
-    else:
-        old_dict = dict(old_object)
-    new_dict: dict = dict(new_object)
-    changed_keys: list = [k for k, v in new_dict.items() if v != old_dict.get(k)]
-    old_val: dict = {k: old_dict.get(k) for k in changed_keys}
-    new_val: dict = {k: new_dict.get(k) for k in changed_keys}
-    old_val_json: str = json.dumps(old_val)
-    new_val_json: str = json.dumps(new_val)
-    record_id: int = new_object.id
-    timestam: str = datetime.now().isoformat()
-    raw_hash: str = f"{table_affected}{record_id}{user_id}{action}{old_val_json}{new_val_json}{timestam}"
-    row_hash: str = hashlib.sha256(raw_hash.encode("utf-8")).hexdigest()
-    query_insert: str = """
-        INSERT INTO audit_log (table_affected, record_id, user, action, old_val, new_val, timestamp, hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """
-    with sqlite3.connect(db_path) as db:
-        try:
-            db.execute(
-                query_insert,
-                (
-                    table_affected,
-                    record_id,
-                    user_id,
-                    action,
-                    old_val_json,
-                    new_val_json,
-                    timestam,
-                    row_hash,
-                ),
-            )
-            db.commit()
-        except sqlite3.Error as e:
-            db.rollback()
-            raise e
-    return new_val
-
-
-def audit_log_training(
-    old_training_obj: Training | None,
-    new_training_obj: Training,
-    user_id: int,
-    action: str,
-    db_path: str,
-):
-    table_affected: str = "training_records"
-    if not old_training_obj:
-        old_dict: dict = {}
-    else:
-        old_dict = dict(old_training_obj)
-    new_dict: dict = dict(new_training_obj)
-    changed_keys: list = [k for k, v in new_dict.items() if v != old_dict.get(k)]
-    old_val: dict = {k: old_dict.get(k) for k in changed_keys}
-    new_val: dict = {k: new_dict.get(k) for k in changed_keys}
-    old_val_json: str = json.dumps(old_val)
-    new_val_json: str = json.dumps(new_val)
-    record_id: int = new_training_obj.id
-    timestam: str = datetime.now().isoformat()
-    raw_hash: str = f"{table_affected}{record_id}{user_id}{action}{old_val_json}{new_val_json}{timestam}"
-    row_hash: str = hashlib.sha256(raw_hash.encode("utf-8")).hexdigest()
-    query_insert: str = """
-        INSERT INTO audit_log (table_affected, record_id, user, action, old_val, new_val, timestamp, hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """
-    with sqlite3.connect(db_path) as db:
-        try:
-            db.execute(
-                query_insert,
-                (
-                    table_affected,
-                    record_id,
-                    user_id,
-                    action,
-                    old_val_json,
-                    new_val_json,
-                    timestam,
-                    row_hash,
-                ),
-            )
-            db.commit()
-        except sqlite3.Error as e:
-            db.rollback()
-            raise e
-    return new_val
 
 
 def doc_info(doc_num: str, db_path: str) -> Document_Header:
@@ -322,32 +221,3 @@ def get_user_id(user: str, db_path: str) -> int:
         cur: sqlite3.Cursor = db.cursor()
         cur.execute("SELECT user_id FROM users WHERE user_name = ?", (user,))
         return cur.fetchone()[0]
-
-
-def lazy_check(db_path: str):
-    query: str = "SELECT * FROM versions WHERE status = 'TRAINING'"
-    with sqlite3.connect(db_path) as db:
-        cur: sqlite3.Cursor = db.cursor()
-        cur.execute(query)
-        res: list[tuple] = cur.fetchall()
-        if len(res) >= 1:
-            for i in res:
-                old_version: Document_Version = Document_Version(*i)
-                new_version: Document_Version = deepcopy(old_version)
-                major_v: int = int(old_version.version.split(".")[0])
-                if datetime.fromisoformat(old_version.effective_date) < datetime.now():  # type: ignore
-                    if major_v > 1:
-                        supersed_docs(old_version.doc, 0, db_path)
-                    new_version.status = "RELEASED"
-                    new_version.file_path = new_version.file_path.replace(
-                        "_TRAINING", ""
-                    ).replace("02_pending_approval", "03_released")
-                    if os.path.exists(old_version.file_path):
-                        shutil.move(old_version.file_path, new_version.file_path)
-                    new_vals: dict = audit_log_docs(
-                        old_version, new_version, 0, "AUTO_RELEASE", db_path
-                    )
-                    update_db("versions", new_vals, new_version, db_path)
-
-
-# Pasar de training a released cuando toque

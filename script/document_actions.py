@@ -3,22 +3,22 @@ import os
 import shutil
 import sqlite3
 import hashlib
+from pathlib import Path
 from datetime import datetime, timedelta
 from copy import deepcopy
-from core_fn import (
-    audit_log_docs,
+from config import document_types, template_map, storage_root_path
+from core_actions import (
     doc_info,
     version_info,
     user_info,
     update_db,
     create_version,
     max_id,
-    get_training_users,
-    inital_trining,
-    audit_log_training,
+    create_doc,
 )
-from doc_class import Document_Header, Document_Version
-from training_class import Training
+from audit_actions import audit_log_docs
+from training_actions import assign_training
+from classes import Document_Header, Document_Version
 
 
 def doc_action(action: str) -> FunctionType:  # type: ignore
@@ -30,6 +30,65 @@ def doc_action(action: str) -> FunctionType:  # type: ignore
         return obsolete_doc
     else:
         raise ValueError("Action does not exist")
+
+
+def create_new_document(title: str, type: str, user_name: str, db_path: str) -> None:
+    if type not in document_types.values():
+        raise (ValueError(f"Invalid type, not in valid types: '{type}'"))
+    tmp_path: str = template_map.get(type.upper())  # type: ignore
+    if not tmp_path:
+        raise ValueError(
+            f"Configuration Error: No template or mock found for type '{type}'"
+        )
+    user_id: int
+    active_flag: int
+    user_id, active_flag, _ = user_info(user_name, db_path)
+    if active_flag == 0:
+        raise ValueError(f"Owner ID {user_id} does not exist or is inactive")
+    with sqlite3.connect(db_path) as db:
+        cursor: sqlite3.Cursor = db.cursor()
+        cursor.execute("SELECT count(*) FROM documents WHERE title = ?", (title,))
+        if cursor.fetchone()[0] > 0:
+            raise ValueError(f"Document title already exists: '{title}'")
+        cursor.execute("SELECT MAX(doc_id) FROM documents")
+        last_doc_id: int | None = cursor.fetchone()[0]
+        next_doc_id: int = 1 if last_doc_id is None else last_doc_id + 1
+        cursor.execute("SELECT MAX(version_id) FROM versions")
+        last_ver_id: int | None = cursor.fetchone()[0]
+        next_ver_id: int = 1 if last_ver_id is None else last_ver_id + 1
+        cursor.execute(
+            "SELECT doc_num FROM documents WHERE type = ? ORDER BY doc_id DESC LIMIT 1",
+            (type,),
+        )
+        result_num: tuple | None = cursor.fetchone()
+
+        if result_num is None:
+            next_doc_num: str = f"{type}-001"
+        else:
+            last_num_str: str = result_num[0]
+            parts: list[str] = last_num_str.split("-")
+            if len(parts) < 2:
+                next_doc_num: str = f"{type}-001"
+            else:
+                current_seq: int = int(parts[1])
+                next_seq: int = current_seq + 1
+                next_doc_num: str = f"{type}-{next_seq:03d}"
+    copy_path: Path = Path(tmp_path)
+    extension_file: str = os.path.splitext(tmp_path)[1]
+    destination_folder: Path = Path(storage_root_path) / "01_drafts"
+    file_name: str = f"{next_doc_num}_V0.1_DRAFT{extension_file}"
+    destination_path_root = destination_folder / file_name
+    shutil.copy(copy_path, destination_path_root)
+    new_document: Document_Header = Document_Header(
+        next_doc_id, next_doc_num, title, user_id, type
+    )
+    new_version: Document_Version = Document_Version(
+        next_ver_id, next_doc_id, "0.1", "DRAFT", str(destination_path_root), None
+    )
+    create_doc(new_document, db_path)
+    create_version(new_version, db_path)
+    audit_log_docs(None, new_document, new_document.owner, "CREATE", db_path)
+    audit_log_docs(None, new_version, new_document.owner, "CREATE", db_path)
 
 
 def approve_document(
@@ -254,23 +313,46 @@ def obsolete_doc(user: str, doc_num: str, db_path: str):
     update_db("versions", new_vals, version_new, db_path)
 
 
-def assign_training(
-    doc_num: str, efective_date: str, user_assigning: int, db_path: str
-):
-    action: str = "ASSING"
+def revise_doc(user: str, doc_num: str, db_path: str) -> None:
+    action: str = "REVISE"
     parent_doc: Document_Header = doc_info(doc_num, db_path)
-    version_training: Document_Version = version_info(
-        parent_doc.id, db_path, ["status", "TRAINING"]
+    version_old: Document_Version = version_info(
+        parent_doc.id, db_path, ["status", "RELEASED"]
     )
-    users_to_train: list[int] = get_training_users(db_path)
-    for user in users_to_train:
-        new_training: Training = Training(
-            max_id("training_records", "training_id", db_path) + 1,
-            user,
-            version_training.id,
-            "ASSIGNED",
-            datetime.now().isoformat(),
-            efective_date,
+    version_new: Document_Version = deepcopy(version_old)
+    version_new.effective_date = None
+    user_id: int
+    user_roles: list
+    active_flag: int
+    user_id, active_flag, user_roles = user_info(user, db_path)
+    if active_flag == 0:
+        raise ValueError(f"User '{user}' is not active")
+    with sqlite3.connect(db_path) as db:
+        cur: sqlite3.Cursor = db.cursor()
+        cur.execute(
+            "SELECT version_id FROM versions WHERE doc = ? AND status IN ('DRAFT', 'IN_REVIEW')",
+            (parent_doc.id,),
         )
-        inital_trining(new_training, db_path)
-        audit_log_training(None, new_training, user_assigning, action, db_path)
+        if cur.fetchone():
+            raise ValueError(
+                f"Draft or In review already in process for document: '{doc_num}'"
+            )
+
+    if not (user_id == parent_doc.owner or "Quality Manager" in user_roles):
+        raise PermissionError(f"User not allwed to revise document: '{doc_num}'")
+    v_major: int = int(version_old.version.split(".")[0])
+    v_minor: int = int(version_old.version.split(".")[1]) + 1
+    new_version: str = f"{v_major}.{v_minor}"
+    version_new.version = new_version
+    version_new.status = "DRAFT"
+    tmp_path: str = version_old.file_path.replace(
+        version_old.version, new_version
+    ).replace("03_released", "01_drafts")
+    root, ext = os.path.splitext(tmp_path)
+    new_file_path: str = f"{root}_DRAFT{ext}"
+    version_new.file_path = new_file_path
+    new_id: int = max_id("versions", "version_id", db_path) + 1
+    version_new.id = new_id
+    shutil.copy(version_old.file_path, version_new.file_path)
+    audit_log_docs(None, version_new, user_id, action, db_path)
+    create_version(version_new, db_path)

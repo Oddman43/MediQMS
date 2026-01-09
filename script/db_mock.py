@@ -3,9 +3,9 @@ from pathlib import Path
 import os
 from datetime import datetime, timedelta
 from mock_scripts import create_new_document, approve_document, do_training
-from core_fn import lazy_check
+from training_actions import lazy_check
 from training_actions import check_overdue
-from revise_doc import revise_doc
+from document_actions import revise_doc
 
 base_dir: Path = Path(__file__).resolve().parent.parent
 db_path: str = str(base_dir / "data" / "database" / "mediqms.db")
